@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+
+<HTML lang="pt-br">
+<HEAD>
+    <meta charset="UTF-8" />
+    <title>CLT vs PJ</title>
+</HEAD>
+<BODY>
+    <h1>CLT vs PJ 2024</h1>
+    <p>Descobrir a compensação PJ equivalente a CLT</p>
+
+    <form id="salaryForm">
+        <label for="salary">Salário CLT</label>
+        <input type="number" id="salary" name="salary" step="0.01" required> <br>
+        <label for="dependents">Dependentes</label>
+        <input type="number" id="dependents" name="dependents" value="0" required> <br>
+        <label for="vacation">Pensão Alimentícia</label>
+        <input type="number" id="alimony" name="alimony" step="0.01" value="0" required> <br>
+        <label for="vacation">Vale Alimentação</label>
+        <input type="number" id="foodVoucher" name="foodVoucher" step="0.01" value="0" required> <br>
+        <label for="vacation">Serviços Contábeis</label>
+        <input type="number" id="accounting" name="accounting" step="0.01" value="250" required> <br>
+        <label for="vacation">TFE (anual)</label>
+        <input type="number" id="tfe" name="tfe" step="0.01" value="200" required> <br>
+        <button type="submit">Calcular</button>
+    </form>
+
+    <p> <div id="description"></div> </p>
+
+    <p> Salário PJ equivalente: R$ <div id="result"></div> </p>
+
+    <script>
+        const form = document.getElementById('salaryForm');
+        const result = document.getElementById('result');
+
+        form.addEventListener('submit', function(event) {
+            event.preventDefault();
+
+            const salary = this.salary.value;
+            const dependents = this.dependents.value;
+            const alimony = this.alimony.value;
+            const foodVoucher = this.foodVoucher.value;
+            const accounting = this.accounting.value;
+            const tfe = this.tfe.value;
+
+
+            getMonthlyEarningsCLT(salary, dependents, alimony);
+            
+            // Using liquid CLT slary, find equivalent PJ salary
+
+            const convertedSalary = salary;
+
+            result.innerHTML = `
+                ${convertedSalary.toFixed(2)}
+            `;
+        });
+
+        function getMonthlyEarningsCLT(salary, dependents, alimony) {
+            // Find month earnings, based on anual earnings
+            // Liquid salary + FGTS | 8% of 1 salary
+            const liquidReceivings = getLiquidSalary(salary, dependents, alimony) + (salary * 0.08);
+            // Vacation | 1/12 of 1.3 liquidReceivings
+            const paidVacation = (liquidReceivings*1.3) / 12;
+            // 13th salary | 1/12 of 1 liquidReceivings
+            const thirteenthSalary = liquidReceivings / 12;
+
+            const mothlyEarnings = liquidReceivings + paidVacation + thirteenthSalary;
+
+            return mothlyEarnings;
+        }
+
+        function getLiquidSalary(salary, dependents, alimony) {
+            const inssBracket1 = 1412.00;
+            const inssBracket2 = 2666.68;
+            const inssBracket3 = 4000.03;
+            const inssBracket4 = 7786.02;
+            const inssBracket1Rate = 0.075;
+            const inssBracket2Rate = 0.09;
+            const inssBracket3Rate = 0.12;
+            const inssBracket4Rate = 0.14;
+
+            const irpfBracket1 = 2259.20;
+            const irpfBracket2 = 2826.65;
+            const irpfBracket3 = 3751.05;
+            const irpfBracket4 = 4664.68;
+            const irpfBracket2Rate = 0.075;
+            const irpfBracket3Rate = 0.15;
+            const irpfBracket4Rate = 0.225;
+            const irpfBracket5Rate = 0.275;
+            const irpfBracket2Max = (irpfBracket2 - irpfBracket1) * irpfBracket2Rate;
+            const irpfBracket3Max = (irpfBracket3 - irpfBracket2) * irpfBracket3Rate;
+            const irpfBracket4Max = (irpfBracket4 - irpfBracket3) * irpfBracket4Rate;
+            const irpfBracket2Deduction = irpfBracket1 * irpfBracket2Rate;
+            const irpfBracket3Deduction = (irpfBracket2 * irpfBracket3Rate) - irpfBracket2Max;
+            const irpfBracket4Deduction = (irpfBracket3 * irpfBracket4Rate) - irpfBracket3Max - irpfBracket2Max;
+            const irpfBracket5Deduction = (irpfBracket4 * irpfBracket5Rate) - irpfBracket4Max - irpfBracket3Max - irpfBracket2Max;
+
+            const irpfSimplifiedDeduction = 0.25 * irpfBracket1;
+
+            const irpfDeductionPerDependent = 189.59;
+
+            // Descontos
+            // INSS
+            var salaryForInss = (salary < inssBracket4) ? salary : inssBracket4;
+            var inss = 0;
+            if (salaryForInss > inssBracket3) { // Bracket 4
+                const bracketValue = salaryForInss - inssBracket3;
+                inss += bracketValue * inssBracket4Rate;
+                salaryForInss -= bracketValue;
+            }
+            if (salaryForInss > inssBracket2) { // Bracket 3
+                const bracketValue = salaryForInss - inssBracket2;
+                inss += bracketValue * inssBracket3Rate;
+                salaryForInss -= bracketValue;
+            }
+            if (salaryForInss > inssBracket1) { // Bracket 2
+                const bracketValue = salaryForInss - inssBracket1;
+                inss += bracketValue * inssBracket2Rate;
+                salaryForInss -= bracketValue;
+            }
+            inss += salaryForInss * inssBracket1Rate; // Bracket 1
+
+            // IRPF
+            // Choose the best discount, (inss + dependents) or simplified
+            const irpfDefaultDeduction = inss + (dependents * irpfDeductionPerDependent) + alimony;
+            const irpfChoosenDeduction = (irpfDefaultDeduction >= irpfSimplifiedDeduction) ? irpfDefaultDeduction : irpfSimplifiedDeduction;
+
+            const salaryForIrpf = salary - irpfChoosenDeduction;
+            var irpf = 0;
+            // (salaryForIrpf * rate) - deduction
+            if (salaryForIrpf <= irpfBracket1) {
+            } else if (salaryForIrpf <= irpfBracket2) {
+                irpf = (salaryForIrpf * irpfBracket2Rate) - irpfBracket2Deduction;
+            } else if (salaryForIrpf <= irpfBracket3) {
+                irpf = (salaryForIrpf * irpfBracket3Rate) - irpfBracket3Deduction;
+            } else if (salaryForIrpf <= irpfBracket4) {
+                irpf = (salaryForIrpf * irpfBracket4Rate) - irpfBracket4Deduction;
+            } else {
+                irpf = (salaryForIrpf * irpfBracket5Rate) - irpfBracket5Deduction;
+            }
+
+            const liquidSalary = salary - inss - irpf;
+
+            console.log(inss);
+            console.log(irpf);
+            console.log(liquidSalary);
+
+            return liquidSalary;
+        }
+    </script>
+</BODY>
+
+<script 
