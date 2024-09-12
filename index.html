@@ -4,6 +4,15 @@
 <HEAD>
     <meta charset="UTF-8" />
     <title>CLT vs PJ</title>
+
+    <style>
+        td {
+            text-align: center;
+        }
+        tr {
+            height: 25px;
+        }
+    </style>
 </HEAD>
 <BODY>
     <h1>CLT vs PJ 2024</h1>
@@ -17,7 +26,7 @@
         <label for="vacation">Pensão Alimentícia</label>
         <input type="number" id="alimony" name="alimony" step="0.01" value="0" required> <br>
         <label for="vacation">Vale Alimentação</label>
-        <input type="number" id="foodVoucher" name="foodVoucher" step="0.01" value="0" required> <br>
+        <input type="number" id="foodVoucher" name="foodVoucher" step="0.01" value="1000" required> <br>
         <label for="vacation">Serviços Contábeis</label>
         <input type="number" id="accounting" name="accounting" step="0.01" value="250" required> <br>
         <label for="vacation">TFE (anual)</label>
@@ -25,51 +34,184 @@
         <button type="submit">Calcular</button>
     </form>
 
-    <p> <div id="description"></div> </p>
+    <div style="display: flex;">
+        <table>
+            <caption>CLT</caption>
+            <tr>
+                <th>Descrição</th>
+                <th>Valor R$</th>
+            </tr>
+            <tr>
+                <td>Salário</td>
+                <td style="background: #00f; color: #fff;" id="salaryShow"></td>
+            </tr>
+            <tr></tr>
+            <tr></tr>
+            <tr>
+                <td>INSS Pessoa Física</td>
+                <td style="background: #f00; color: #fff;" id="insspfShow"></td>
+            </tr>
+            <tr>
+                <td>Imposto de Renda Pessoa Física</td>
+                <td style="background: #f00; color: #fff;" id="irpfShow"></td>
+            </tr>
+            <tr>
+                <td>FGTS</td>
+                <td style="background: #0f0;" id="fgtsShow"></td>
+            </tr>
+            <tr>
+                <td>13º</td>
+                <td style="background: #0f0;" id="thirteenthShow"></td>
+            </tr>
+            <tr>
+                <td>Férias</td>
+                <td style="background: #0f0;" id="vacationShow"></td>
+            </tr>
+            <tr>
+                <td>Benefícios (VA)</td>
+                <td style="background: #0f0;" id="benefitsShow"></td>
+            </tr>
+            <tr>
+                <td>Remuneração Mensal Líquida CLT</td>
+                <td style="background: #ff0;" id="mothlyEarningsCLTShow"></td>
+            </tr>
+        </table>
 
-    <p> Salário PJ equivalente: R$ <div id="result"></div> </p>
+        <table>
+            <caption>PJ</caption>
+            <tr>
+                <th>Valor R$</th>
+                <th>Descrição</th>
+            </tr>
+            <tr>
+                <td style="background: #f0f; color: #fff;" id="pjSalaryShow"></td>
+                <td style="background: #f0f; color: #fff;"> <b> Salário PJ equivalente </b> </td>
+            </tr>
+            <tr>
+                <td style="background: #f00; color: #fff;" id="accountingShow"></td>
+                <td>Despesas Contábeis</td>
+            </tr>
+            <tr>
+                <td style="background: #f00; color: #fff;" id="tfeShow"></td>
+                <td>Taxa de Fiscalização Municipal (mensal)</td>
+            </tr>
+            <tr>
+                <td style="background: #f00; color: #fff;" id="insspjShow"></td>
+                <td>INSS Pessoa Jurídica</td>
+            </tr>
+            <tr>
+                <td style="background: #f00; color: #fff;" id="snShow"></td>
+                <td>Imposto Simples Nacional</td>
+            </tr>
+            <tr></tr>
+            <tr></tr>
+            <tr></tr>
+            <tr></tr>
+            <tr>
+                <td style="background: #ff0;" id="mothlyEarningsPJShow"></td>
+                <td>Remuneração Mensal Líquida PJ</td>
+            </tr>
+        </table>
+    </div>
 
     <script>
         const form = document.getElementById('salaryForm');
-        const result = document.getElementById('result');
+        const salaryShow = document.getElementById('salaryShow');
+        const irpfShow = document.getElementById('irpfShow');
+        const fgtsShow = document.getElementById('fgtsShow');
+        const thirteenthShow = document.getElementById('thirteenthShow');
+        const vacationShow = document.getElementById('vacationShow');
+        const insspfShow = document.getElementById('insspfShow');
+        const benefitsShow = document.getElementById('benefitsShow');
+        const mothlyEarningsCLTShow = document.getElementById('mothlyEarningsCLTShow');
+        const pjSalaryShow = document.getElementById('pjSalaryShow');
+        const accountingShow = document.getElementById('accountingShow');
+        const tfeShow = document.getElementById('tfeShow');
+        const insspjShow = document.getElementById('insspjShow');
+        const snShow = document.getElementById('snShow');
+        const mothlyEarningsPJShow = document.getElementById('mothlyEarningsPJShow');
 
         form.addEventListener('submit', function(event) {
             event.preventDefault();
 
-            const salary = this.salary.value;
-            const dependents = this.dependents.value;
-            const alimony = this.alimony.value;
-            const foodVoucher = this.foodVoucher.value;
-            const accounting = this.accounting.value;
-            const tfe = this.tfe.value;
+            const salary = parseFloat(this.salary.value);
+            const dependents = parseFloat(this.dependents.value);
+            const alimony = parseFloat(this.alimony.value);
+            const foodVoucher = parseFloat(this.foodVoucher.value);
+            const accounting = parseFloat(this.accounting.value);
+            const tfe = parseFloat(this.tfe.value)/12;
 
+            // Calculate CLT monthly earnings
+            const mothlyEarnings = getMonthlyEarningsCLT(salary, foodVoucher, dependents, alimony);
 
-            getMonthlyEarningsCLT(salary, dependents, alimony);
-            
+            mothlyEarningsCLTShow.innerText = `${mothlyEarnings.toFixed(2)}`;
+
             // Using liquid CLT slary, find equivalent PJ salary
+            var pjSalary = mothlyEarnings;
 
-            const convertedSalary = salary;
+            // Add accounting expenses
+            pjSalary += accounting;
+            // Add city fiscalizazion tax monthly
+            pjSalary += tfe;
 
-            result.innerHTML = `
-                ${convertedSalary.toFixed(2)}
-            `;
+            // ADD INSS (currently the order does not matter since the roof will be paid)
+            const inss = getINSS(pjSalary);
+            pjSalary += inss;
+
+            // Simples Nacional (18% - 375) [ISS, CSLL, IRPJ, Cofins, PIS, CPP]
+            const beforeSN = pjSalary;
+            pjSalary = (pjSalary - 375) / (1 - 0.18);
+            const sn = pjSalary - beforeSN;
+
+            accountingShow.innerText = `${accounting.toFixed(2)}`;
+            tfeShow.innerText = `${tfe.toFixed(2)}`;
+            insspjShow.innerText = `${inss.toFixed(2)}`;
+            snShow.innerText = `${sn.toFixed(2)}`;
+
+            pjSalaryShow.innerText = `${pjSalary.toFixed(2)}`;
         });
 
-        function getMonthlyEarningsCLT(salary, dependents, alimony) {
+        function getMonthlyEarningsCLT(salary, foodVoucher, dependents, alimony) {
             // Find month earnings, based on anual earnings
+            // FGTS
+            const fgts = salary * 0.08;
             // Liquid salary + FGTS | 8% of 1 salary
-            const liquidReceivings = getLiquidSalary(salary, dependents, alimony) + (salary * 0.08);
+            const liquidReceivings = getLiquidSalary(salary, dependents, alimony) + fgts;
             // Vacation | 1/12 of 1.3 liquidReceivings
             const paidVacation = (liquidReceivings*1.3) / 12;
             // 13th salary | 1/12 of 1 liquidReceivings
             const thirteenthSalary = liquidReceivings / 12;
 
-            const mothlyEarnings = liquidReceivings + paidVacation + thirteenthSalary;
+            const mothlyEarnings = liquidReceivings + paidVacation + thirteenthSalary + foodVoucher;
+
+            fgtsShow.innerText = `${fgts.toFixed(2)}`;
+            thirteenthShow.innerText = `${thirteenthSalary.toFixed(2)}`;
+            vacationShow.innerText = `${paidVacation.toFixed(2)}`;
+            benefitsShow.innerText = `${foodVoucher.toFixed(2)}`;
+            mothlyEarningsCLTShow.innerText = `${mothlyEarnings.toFixed(2)}`;
+            mothlyEarningsPJShow.innerText = `${mothlyEarnings.toFixed(2)}`;
 
             return mothlyEarnings;
         }
 
         function getLiquidSalary(salary, dependents, alimony) {
+            // Descontos
+            // INSS
+            const inss = getINSS(salary);
+
+            // IRPF
+            const irpf = getIRPF(salary, inss, dependents, alimony);
+
+            const liquidSalary = salary - inss - irpf;
+
+            salaryShow.innerText = `${salary.toFixed(2)}`;
+            irpfShow.innerText = `${irpf.toFixed(2)}`;
+            insspfShow.innerText = `${inss.toFixed(2)}`;
+
+            return liquidSalary;
+        }
+
+        function getINSS(salary) {
             const inssBracket1 = 1412.00;
             const inssBracket2 = 2666.68;
             const inssBracket3 = 4000.03;
@@ -79,27 +221,6 @@
             const inssBracket3Rate = 0.12;
             const inssBracket4Rate = 0.14;
 
-            const irpfBracket1 = 2259.20;
-            const irpfBracket2 = 2826.65;
-            const irpfBracket3 = 3751.05;
-            const irpfBracket4 = 4664.68;
-            const irpfBracket2Rate = 0.075;
-            const irpfBracket3Rate = 0.15;
-            const irpfBracket4Rate = 0.225;
-            const irpfBracket5Rate = 0.275;
-            const irpfBracket2Max = (irpfBracket2 - irpfBracket1) * irpfBracket2Rate;
-            const irpfBracket3Max = (irpfBracket3 - irpfBracket2) * irpfBracket3Rate;
-            const irpfBracket4Max = (irpfBracket4 - irpfBracket3) * irpfBracket4Rate;
-            const irpfBracket2Deduction = irpfBracket1 * irpfBracket2Rate;
-            const irpfBracket3Deduction = (irpfBracket2 * irpfBracket3Rate) - irpfBracket2Max;
-            const irpfBracket4Deduction = (irpfBracket3 * irpfBracket4Rate) - irpfBracket3Max - irpfBracket2Max;
-            const irpfBracket5Deduction = (irpfBracket4 * irpfBracket5Rate) - irpfBracket4Max - irpfBracket3Max - irpfBracket2Max;
-
-            const irpfSimplifiedDeduction = 0.25 * irpfBracket1;
-
-            const irpfDeductionPerDependent = 189.59;
-
-            // Descontos
             // INSS
             var salaryForInss = (salary < inssBracket4) ? salary : inssBracket4;
             var inss = 0;
@@ -120,7 +241,30 @@
             }
             inss += salaryForInss * inssBracket1Rate; // Bracket 1
 
-            // IRPF
+            return inss;
+        }
+
+        function getIRPF(salary, inss, dependents, alimony) {
+            const irpfBracket1 = 2259.20;
+            const irpfBracket2 = 2826.65;
+            const irpfBracket3 = 3751.05;
+            const irpfBracket4 = 4664.68;
+            const irpfBracket2Rate = 0.075;
+            const irpfBracket3Rate = 0.15;
+            const irpfBracket4Rate = 0.225;
+            const irpfBracket5Rate = 0.275;
+            const irpfBracket2Max = (irpfBracket2 - irpfBracket1) * irpfBracket2Rate;
+            const irpfBracket3Max = (irpfBracket3 - irpfBracket2) * irpfBracket3Rate;
+            const irpfBracket4Max = (irpfBracket4 - irpfBracket3) * irpfBracket4Rate;
+            const irpfBracket2Deduction = irpfBracket1 * irpfBracket2Rate;
+            const irpfBracket3Deduction = (irpfBracket2 * irpfBracket3Rate) - irpfBracket2Max;
+            const irpfBracket4Deduction = (irpfBracket3 * irpfBracket4Rate) - irpfBracket3Max - irpfBracket2Max;
+            const irpfBracket5Deduction = (irpfBracket4 * irpfBracket5Rate) - irpfBracket4Max - irpfBracket3Max - irpfBracket2Max;
+
+            const irpfSimplifiedDeduction = 0.25 * irpfBracket1;
+
+            const irpfDeductionPerDependent = 189.59;
+
             // Choose the best discount, (inss + dependents) or simplified
             const irpfDefaultDeduction = inss + (dependents * irpfDeductionPerDependent) + alimony;
             const irpfChoosenDeduction = (irpfDefaultDeduction >= irpfSimplifiedDeduction) ? irpfDefaultDeduction : irpfSimplifiedDeduction;
@@ -139,13 +283,7 @@
                 irpf = (salaryForIrpf * irpfBracket5Rate) - irpfBracket5Deduction;
             }
 
-            const liquidSalary = salary - inss - irpf;
-
-            console.log(inss);
-            console.log(irpf);
-            console.log(liquidSalary);
-
-            return liquidSalary;
+            return irpf;
         }
     </script>
 </BODY>
